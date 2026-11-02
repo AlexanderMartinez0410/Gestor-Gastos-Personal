@@ -64,4 +64,15 @@ Solo necesitas configurarla una vez siguiendo estos pasos:
   Abre `http://localhost:8080` en tu navegador.
 
 * **En tu celular (GitHub Pages):**
-  Sube este repositorio a GitHub, activa **Settings > Pages** sobre la rama `main`, abre el enlace en tu teléfono y pega tu URL del Webhook en **Ajustes**.
+  Sube este repositorio a GitHub, activa **Settings > Pages** sobre la rama `master` (o `main`), abre el enlace en tu teléfono y pega tu URL del Webhook en **Ajustes**.
+
+---
+
+## Licencia y Uso Personal
+
+Este proyecto fue desarrollado con fines de **uso personal y aprendizaje**.
+
+* **Uso personal:** Está diseñado para la gestión privada de finanzas cotidianas de forma individual.
+* **Sin garantías:** El código se proporciona *"tal cual"*, sin garantías de ningún tipo.
+* **Privacidad:** Ningún dato financiero se almacena en este repositorio; la información viaja directamente desde tu navegador (`localStorage`) hacia tu propia hoja de Google Sheets mediante tu URL personal de Webhook.
+* **Derechos de uso:** Puedes clonar, adaptar o usar este proyecto para tu propio control personal o estudio, pero no está destinado para su comercialización ni distribución como servicio a terceros.
