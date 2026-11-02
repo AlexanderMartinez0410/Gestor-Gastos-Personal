@@ -49,21 +49,40 @@
     html, body {
       width: 100%;
       min-height: 100dvh;
+      min-height: 100vh;
       background-color: var(--bg-page);
       color: var(--text-primary);
       font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       font-size: 14px;
       line-height: 1.5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     .container {
+      width: 100%;
       max-width: 420px;
-      margin: 0 auto;
-      padding: calc(20px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));
+      margin-top: auto;
+      margin-bottom: auto;
+      padding: calc(24px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 16px;
+      animation: containerEntrance 0.45s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    }
+
+    @keyframes containerEntrance {
+      from {
+        opacity: 0;
+        transform: translateY(14px) scale(0.99);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
     }
 
     /* Header minimalista estilo Vercel */
@@ -73,6 +92,7 @@
       justify-content: space-between;
       padding-bottom: 12px;
       border-bottom: 1px solid var(--border);
+      transition: border-color 0.2s ease;
     }
 
     .sync-status {
@@ -81,18 +101,24 @@
       gap: 8px;
       background: var(--bg-surface);
       border: 1px solid var(--border);
-      padding: 5px 10px;
+      padding: 5px 11px;
       border-radius: 999px;
       font-size: 12px;
       font-weight: 500;
       color: var(--text-secondary);
       cursor: pointer;
-      transition: border-color 0.15s ease, color 0.15s ease;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
     }
 
     .sync-status:hover {
       border-color: var(--border-hover);
       color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    .sync-status:active {
+      transform: scale(0.97);
     }
 
     .status-dot {
@@ -100,6 +126,7 @@
       height: 7px;
       border-radius: 50%;
       background-color: var(--status-ok);
+      transition: background-color 0.2s ease;
     }
 
     .sync-status.offline .status-dot {
@@ -108,6 +135,18 @@
 
     .sync-status.syncing .status-dot {
       background-color: var(--status-sync);
+      animation: pulseDot 1s infinite ease-in-out;
+    }
+
+    @keyframes pulseDot {
+      0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.4);
+        opacity: 0.45;
+      }
     }
 
     .settings-link {
@@ -120,12 +159,18 @@
       font-size: 12px;
       font-weight: 500;
       cursor: pointer;
-      transition: border-color 0.15s ease, background-color 0.15s ease;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
     }
 
     .settings-link:hover {
       background-color: var(--bg-subtle);
       border-color: var(--border-hover);
+      transform: translateY(-1px);
+    }
+
+    .settings-link:active {
+      transform: scale(0.97);
     }
 
     .config-alert-dot {
@@ -136,6 +181,12 @@
       background-color: var(--status-warn);
       margin-left: 5px;
       vertical-align: middle;
+      animation: pulseAlert 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseAlert {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(1.2); }
     }
 
     .config-alert-dot.hidden {
@@ -147,11 +198,22 @@
       background-color: var(--bg-surface);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
-      padding: 20px;
+      padding: 22px;
       display: flex;
       flex-direction: column;
       gap: 20px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 2px 6px -1px rgba(0, 0, 0, 0.02);
+      transition: box-shadow 0.25s ease, transform 0.2s ease;
+    }
+
+    .card.form-success {
+      animation: pulseSuccess 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes pulseSuccess {
+      0% { transform: scale(1); }
+      50% { transform: scale(0.99); }
+      100% { transform: scale(1); }
     }
 
     .field-group {
@@ -186,14 +248,23 @@
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.15s ease;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+    }
+
+    .segment-btn:hover:not(.active) {
+      color: var(--text-primary);
+    }
+
+    .segment-btn:active {
+      transform: scale(0.96);
     }
 
     .segment-btn.active {
       background-color: var(--bg-surface);
       color: var(--text-primary);
       font-weight: 600;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.07);
     }
 
     /* Paso 2: Cantidad */
@@ -204,11 +275,23 @@
       border-radius: var(--radius-md);
       background-color: var(--bg-surface);
       padding: 10px 14px;
-      transition: border-color 0.15s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
     }
 
     .amount-input-wrapper:focus-within {
       border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .amount-input-wrapper.shake {
+      animation: shakeError 0.35s ease-in-out;
+      border-color: #ef4444;
+    }
+
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
     }
 
     .currency-prefix {
@@ -217,6 +300,11 @@
       color: var(--text-muted);
       margin-right: 8px;
       user-select: none;
+      transition: color 0.2s ease;
+    }
+
+    .amount-input-wrapper:focus-within .currency-prefix {
+      color: var(--text-primary);
     }
 
     .amount-input {
@@ -251,18 +339,38 @@
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
-      transition: all 0.12s ease;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
     }
 
     .cat-pill:hover {
       border-color: var(--border-hover);
       color: var(--text-primary);
+      transform: translateY(-1px);
+    }
+
+    .cat-pill:active {
+      transform: scale(0.95);
     }
 
     .cat-pill.selected {
       background-color: var(--accent);
       border-color: var(--accent);
       color: var(--accent-fg);
+      transform: scale(1);
+      animation: pillPop 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes pillPop {
+      0% {
+        transform: scale(0.94);
+      }
+      60% {
+        transform: scale(1.05);
+      }
+      100% {
+        transform: scale(1);
+      }
     }
 
     /* Paso 4: Checkbox de Detalle + Input condicional */
@@ -284,6 +392,7 @@
       cursor: pointer;
       user-select: none;
       padding-top: 8px;
+      transition: color 0.15s ease;
     }
 
     .checkbox-input {
@@ -297,12 +406,13 @@
       cursor: pointer;
       display: inline-grid;
       place-content: center;
-      transition: all 0.12s ease;
+      transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
     .checkbox-input:checked {
       background-color: var(--accent);
       border-color: var(--accent);
+      transform: scale(1.05);
     }
 
     .checkbox-input:checked::before {
@@ -320,6 +430,18 @@
 
     .detail-input-container.visible {
       display: block;
+      animation: slideDownDetail 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideDownDetail {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .text-input {
@@ -331,7 +453,7 @@
       color: var(--text-primary);
       background-color: var(--bg-surface);
       outline: none;
-      transition: border-color 0.15s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     .text-input::placeholder {
@@ -340,6 +462,7 @@
 
     .text-input:focus {
       border-color: var(--border-focus);
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
     }
 
     /* Botón Principal */
@@ -349,40 +472,47 @@
       color: var(--accent-fg);
       border: 1px solid var(--accent);
       border-radius: var(--radius-md);
-      padding: 11px 16px;
+      padding: 12px 16px;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
-      transition: opacity 0.15s ease, transform 0.08s ease;
+      transition: opacity 0.15s ease, transform 0.1s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+      user-select: none;
     }
 
     .submit-btn:hover {
-      opacity: 0.9;
+      opacity: 0.92;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+      transform: translateY(-1px);
     }
 
     .submit-btn:active {
-      transform: scale(0.99);
+      transform: scale(0.98);
+      box-shadow: none;
     }
 
     /* Toast minimalista */
     .toast {
       position: fixed;
-      bottom: calc(20px + var(--safe-bottom));
+      bottom: calc(24px + var(--safe-bottom));
       left: 50%;
-      transform: translateX(-50%) translateY(150%);
+      transform: translateX(-50%) translateY(20px);
       background-color: var(--text-primary);
       color: #ffffff;
-      padding: 8px 14px;
-      border-radius: var(--radius-sm);
+      padding: 9px 16px;
+      border-radius: var(--radius-md);
       font-size: 12px;
       font-weight: 500;
       z-index: 100;
-      transition: transform 0.2s ease;
+      opacity: 0;
       pointer-events: none;
       white-space: nowrap;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
     }
 
     .toast.show {
+      opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
 
@@ -390,7 +520,9 @@
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background-color: rgba(0, 0, 0, 0.4);
+      background-color: rgba(0, 0, 0, 0.38);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -398,7 +530,7 @@
       z-index: 50;
       opacity: 0;
       pointer-events: none;
-      transition: opacity 0.15s ease;
+      transition: opacity 0.22s ease;
     }
 
     .modal-backdrop.open {
@@ -418,7 +550,13 @@
       flex-direction: column;
       gap: 16px;
       overflow-y: auto;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+      transform: translateY(14px) scale(0.97);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .modal-backdrop.open .modal-box {
+      transform: translateY(0) scale(1);
     }
 
     .modal-header {
@@ -918,6 +1056,13 @@
         const numericAmount = parseFloat(amountInput.value);
         if (isNaN(numericAmount) || numericAmount <= 0) {
           showToast('Ingresa una cantidad mayor a 0');
+          const wrapper = amountInput.closest('.amount-input-wrapper');
+          if (wrapper) {
+            wrapper.classList.remove('shake');
+            void wrapper.offsetWidth;
+            wrapper.classList.add('shake');
+            setTimeout(() => wrapper.classList.remove('shake'), 400);
+          }
           amountInput.focus();
           return;
         }
@@ -939,6 +1084,15 @@
         queue.push(transaction);
         saveQueue(queue);
         addToRecentHistory(transaction);
+
+        // Feedback de éxito en la tarjeta
+        const card = document.querySelector('.card');
+        if (card) {
+          card.classList.remove('form-success');
+          void card.offsetWidth;
+          card.classList.add('form-success');
+          setTimeout(() => card.classList.remove('form-success'), 400);
+        }
 
         // Reiniciar formulario
         amountInput.value = '';
