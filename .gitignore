@@ -1,0 +1,33 @@
+# Variables de entorno y secretos locales
+.env
+.env.*
+*.env
+config.local.js
+secrets.json
+webhook.txt
+
+# Respaldos locales y datos de prueba
+*.bak
+*.backup
+*.tmp
+*.swp
+*~
+backups/
+data-local/
+*-backup.json
+
+# Dependencias y compilaciones (si se agregan herramientas locales)
+node_modules/
+dist/
+.parcel-cache/
+
+# Archivos del Sistema Operativo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editores e IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace

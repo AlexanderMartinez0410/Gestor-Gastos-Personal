@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <meta name="description" content="Registro minimalista de ingresos y egresos con sincronización a Google Sheets." />
+
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Finanzas" />
+  <link rel="apple-touch-icon" href="./icon-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+  <link rel="manifest" href="./manifest.json" />
+
+  <title>Finanzas</title>
+
+  <style>
+    :root {
+      --bg-page: #fafafa;
+      --bg-surface: #ffffff;
+      --bg-subtle: #f4f4f5;
+      --border: #eaeaea;
+      --border-hover: #d4d4d8;
+      --border-focus: #000000;
+      --text-primary: #0a0a0a;
+      --text-secondary: #666666;
+      --text-muted: #888888;
+      --accent: #000000;
+      --accent-fg: #ffffff;
+      --status-ok: #10b981;
+      --status-warn: #f59e0b;
+      --status-sync: #0070f3;
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100dvh;
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 0 auto;
+      padding: calc(20px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Header minimalista estilo Vercel */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sync-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: border-color 0.15s ease, color 0.15s ease;
+    }
+
+    .sync-status:hover {
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background-color: var(--status-ok);
+    }
+
+    .sync-status.offline .status-dot {
+      background-color: var(--status-warn);
+    }
+
+    .sync-status.syncing .status-dot {
+      background-color: var(--status-sync);
+    }
+
+    .settings-link {
+      position: relative;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 5px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .settings-link:hover {
+      background-color: var(--bg-subtle);
+      border-color: var(--border-hover);
+    }
+
+    .config-alert-dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--status-warn);
+      margin-left: 5px;
+      vertical-align: middle;
+    }
+
+    .config-alert-dot.hidden {
+      display: none;
+    }
+
+    /* Tarjeta principal del formulario */
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      letter-spacing: -0.01em;
+    }
+
+    /* Paso 1: Selector Ingreso / Egreso */
+    .segmented-control {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background-color: var(--bg-subtle);
+      padding: 3px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    .segment-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .segment-btn.active {
+      background-color: var(--bg-surface);
+      color: var(--text-primary);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Paso 2: Cantidad */
+    .amount-input-wrapper {
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background-color: var(--bg-surface);
+      padding: 10px 14px;
+      transition: border-color 0.15s ease;
+    }
+
+    .amount-input-wrapper:focus-within {
+      border-color: var(--border-focus);
+    }
+
+    .currency-prefix {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-right: 8px;
+      user-select: none;
+    }
+
+    .amount-input {
+      width: 100%;
+      border: none;
+      outline: none;
+      background: transparent;
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text-primary);
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .amount-input::placeholder {
+      color: #d4d4d8;
+    }
+
+    /* Paso 3: Categorías */
+    .categories-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .cat-pill {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 7px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.12s ease;
+    }
+
+    .cat-pill:hover {
+      border-color: var(--border-hover);
+      color: var(--text-primary);
+    }
+
+    .cat-pill.selected {
+      background-color: var(--accent);
+      border-color: var(--accent);
+      color: var(--accent-fg);
+    }
+
+    /* Paso 4: Checkbox de Detalle + Input condicional */
+    .detail-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding-top: 4px;
+      border-top: 1px solid var(--border);
+    }
+
+    .checkbox-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      cursor: pointer;
+      user-select: none;
+      padding-top: 8px;
+    }
+
+    .checkbox-input {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 1px solid var(--border-hover);
+      border-radius: 4px;
+      background-color: var(--bg-surface);
+      cursor: pointer;
+      display: inline-grid;
+      place-content: center;
+      transition: all 0.12s ease;
+    }
+
+    .checkbox-input:checked {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .checkbox-input:checked::before {
+      content: "";
+      width: 8px;
+      height: 5px;
+      border-left: 1.8px solid #ffffff;
+      border-bottom: 1.8px solid #ffffff;
+      transform: rotate(-45deg) translate(0.5px, -0.5px);
+    }
+
+    .detail-input-container {
+      display: none;
+    }
+
+    .detail-input-container.visible {
+      display: block;
+    }
+
+    .text-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 10px 12px;
+      font-size: 13px;
+      color: var(--text-primary);
+      background-color: var(--bg-surface);
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .text-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .text-input:focus {
+      border-color: var(--border-focus);
+    }
+
+    /* Botón Principal */
+    .submit-btn {
+      width: 100%;
+      background-color: var(--accent);
+      color: var(--accent-fg);
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-md);
+      padding: 11px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.15s ease, transform 0.08s ease;
+    }
+
+    .submit-btn:hover {
+      opacity: 0.9;
+    }
+
+    .submit-btn:active {
+      transform: scale(0.99);
+    }
+
+    /* Toast minimalista */
+    .toast {
+      position: fixed;
+      bottom: calc(20px + var(--safe-bottom));
+      left: 50%;
+      transform: translateX(-50%) translateY(150%);
+      background-color: var(--text-primary);
+      color: #ffffff;
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+      z-index: 100;
+      transition: transform 0.2s ease;
+      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Modal de Ajustes */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background-color: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.15s ease;
+    }
+
+    .modal-backdrop.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 400px;
+      max-height: 85dvh;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      overflow-y: auto;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .modal-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .close-btn {
+      border: 1px solid var(--border);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    .close-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--border-hover);
+    }
+
+    .settings-section {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .settings-help {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-outline {
+      flex: 1;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .btn-outline:hover {
+      background-color: var(--bg-subtle);
+    }
+
+    .btn-solid {
+      flex: 1;
+      background-color: var(--accent);
+      border: 1px solid var(--accent);
+      color: var(--accent-fg);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 160px;
+      overflow-y: auto;
+    }
+
+    .queue-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      background-color: var(--bg-page);
+    }
+
+    .queue-item-left {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .queue-item-title {
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .queue-item-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .queue-item-amount {
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .empty-text {
+      font-size: 12px;
+      color: var(--text-muted);
+      padding: 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <main class="container">
+    <!-- Barra superior minimalista -->
+    <header class="header">
+      <button id="sync-badge" type="button" class="sync-status" title="Toca para sincronizar">
+        <span class="status-dot"></span>
+        <span id="sync-text">Sincronizado</span>
+      </button>
+
+      <button id="settings-btn" type="button" class="settings-link">
+        Ajustes<span id="config-dot" class="config-alert-dot hidden"></span>
+      </button>
+    </header>
+
+    <!-- Formulario en orden estricto -->
+    <form id="finance-form" class="card" novalidate>
+      <!-- 1. Tipo: Ingreso o Egreso -->
+      <div class="field-group">
+        <span class="field-label">1. Tipo de movimiento</span>
+        <div class="segmented-control" role="tablist">
+          <button id="tab-egreso" type="button" class="segment-btn active" data-type="Egreso">
+            Egreso
+          </button>
+          <button id="tab-ingreso" type="button" class="segment-btn" data-type="Ingreso">
+            Ingreso
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Medio: Efectivo o Banco -->
+      <div class="field-group">
+        <span class="field-label">2. Medio (Efectivo o Banco)</span>
+        <div class="segmented-control" role="tablist">
+          <button id="tab-efectivo" type="button" class="segment-btn active" data-method="Efectivo">
+            Efectivo
+          </button>
+          <button id="tab-banco" type="button" class="segment-btn" data-method="Banco">
+            Banco
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Cantidad -->
+      <div class="field-group">
+        <label for="amount-input" class="field-label">3. Cantidad</label>
+        <div class="amount-input-wrapper">
+          <span class="currency-prefix">$</span>
+          <input
+            id="amount-input"
+            type="text"
+            inputmode="decimal"
+            class="amount-input"
+            placeholder="0.00"
+            autocomplete="off"
+            required
+          />
+        </div>
+      </div>
+
+      <!-- 4. Categoría -->
+      <div class="field-group">
+        <span class="field-label">4. Categoría</span>
+        <div id="chips-container" class="categories-grid" role="radiogroup"></div>
+      </div>
+
+      <!-- 4. Detalle opcional mediante Checkbox -->
+      <div class="detail-section">
+        <label class="checkbox-label">
+          <input id="detail-checkbox" type="checkbox" class="checkbox-input" />
+          <span>Agregar detalle</span>
+        </label>
+
+        <div id="detail-container" class="detail-input-container">
+          <input
+            id="note-input"
+            type="text"
+            class="text-input"
+            placeholder="Escribe el detalle..."
+            maxlength="80"
+            autocomplete="off"
+          />
+        </div>
+      </div>
+
+      <!-- Botón de Guardar -->
+      <button id="submit-btn" type="submit" class="submit-btn">
+        Guardar egreso
+      </button>
+    </form>
+  </main>
+
+  <!-- Modal de Ajustes -->
+  <div id="settings-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-title" class="modal-title">Ajustes</h2>
+        <button id="close-modal-btn" type="button" class="close-btn">Cerrar</button>
+      </div>
+
+      <div class="settings-section">
+        <label for="webhook-url-input" class="field-label">URL del Webhook (Google Apps Script)</label>
+        <p class="settings-help">
+          Se guarda únicamente en el navegador de este dispositivo.
+        </p>
+        <input
+          id="webhook-url-input"
+          type="url"
+          class="text-input"
+          placeholder="https://.../exec"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <div class="modal-actions">
+          <button id="save-webhook-btn" type="button" class="btn-solid">Guardar URL</button>
+          <button id="force-sync-btn" type="button" class="btn-outline">Sincronizar ahora</button>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <span class="field-label">Pendientes de envío (<span id="pending-count-label">0</span>)</span>
+        <div id="pending-queue-list" class="queue-list"></div>
+      </div>
+
+      <div class="settings-section">
+        <span class="field-label">Últimos registros</span>
+        <div id="recent-history-list" class="queue-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (() => {
+      'use strict';
+
+      const STORAGE_KEYS = {
+        WEBHOOK_URL: 'finanzas_pwa_webhook_url',
+        OFFLINE_QUEUE: 'finanzas_pwa_offline_queue',
+        RECENT_HISTORY: 'finanzas_pwa_recent_history'
+      };
+
+      // Categorías limpias sin íconos
+      const CATEGORIES = {
+        Egreso: [
+          'Alimentación',
+          'Transporte',
+          'Estudio',
+          'Social',
+          'Compras',
+          'Salud',
+          'Varios'
+        ],
+        Ingreso: [
+          'Sueldo / Trabajo',
+          'Ventas',
+          'Regalo',
+          'Otro'
+        ]
+      };
+
+      let currentType = 'Egreso';
+      let currentMethod = 'Efectivo';
+      let selectedCategory = CATEGORIES.Egreso[0];
+      let isSyncing = false;
+      let lastGeneratedId = 0;
+      let toastTimeout = null;
+
+      // Elementos del DOM
+      const financeForm = document.getElementById('finance-form');
+      const syncBadge = document.getElementById('sync-badge');
+      const syncText = document.getElementById('sync-text');
+      const settingsBtn = document.getElementById('settings-btn');
+      const configDot = document.getElementById('config-dot');
+      const tabEgreso = document.getElementById('tab-egreso');
+      const tabIngreso = document.getElementById('tab-ingreso');
+      const tabEfectivo = document.getElementById('tab-efectivo');
+      const tabBanco = document.getElementById('tab-banco');
+      const amountInput = document.getElementById('amount-input');
+      const chipsContainer = document.getElementById('chips-container');
+      const detailCheckbox = document.getElementById('detail-checkbox');
+      const detailContainer = document.getElementById('detail-container');
+      const noteInput = document.getElementById('note-input');
+      const submitBtn = document.getElementById('submit-btn');
+      const toastEl = document.getElementById('toast');
+
+      // Elementos del Modal
+      const settingsModal = document.getElementById('settings-modal');
+      const closeModalBtn = document.getElementById('close-modal-btn');
+      const webhookUrlInput = document.getElementById('webhook-url-input');
+      const saveWebhookBtn = document.getElementById('save-webhook-btn');
+      const forceSyncBtn = document.getElementById('force-sync-btn');
+      const pendingCountLabel = document.getElementById('pending-count-label');
+      const pendingQueueList = document.getElementById('pending-queue-list');
+      const recentHistoryList = document.getElementById('recent-history-list');
+
+      // =========================================================================
+      // ALMACENAMIENTO LOCAL
+      // =========================================================================
+
+      function getWebhookUrl() {
+        return (localStorage.getItem(STORAGE_KEYS.WEBHOOK_URL) || '').trim();
+      }
+
+      function setWebhookUrl(url) {
+        const cleanUrl = (url || '').trim();
+        if (cleanUrl) {
+          localStorage.setItem(STORAGE_KEYS.WEBHOOK_URL, cleanUrl);
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.WEBHOOK_URL);
+        }
+        updateConfigIndicator();
+        updateConnectivityBadge();
+      }
+
+      function getQueue() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEYS.OFFLINE_QUEUE);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveQueue(queue) {
+        localStorage.setItem(STORAGE_KEYS.OFFLINE_QUEUE, JSON.stringify(queue));
+        updateConnectivityBadge();
+        if (settingsModal.classList.contains('open')) {
+          renderQueueInModal();
+        }
+      }
+
+      function getRecentHistory() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEYS.RECENT_HISTORY);
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function addToRecentHistory(tx) {
+        const history = getRecentHistory();
+        history.unshift(tx);
+        if (history.length > 15) {
+          history.length = 15;
+        }
+        localStorage.setItem(STORAGE_KEYS.RECENT_HISTORY, JSON.stringify(history));
+      }
+
+      function generateUniqueId() {
+        let now = Date.now();
+        if (now <= lastGeneratedId) {
+          now = lastGeneratedId + 1;
+        }
+        lastGeneratedId = now;
+        return String(now);
+      }
+
+      // =========================================================================
+      // INTERFAZ DE USUARIO
+      // =========================================================================
+
+      function showToast(message) {
+        if (toastTimeout) clearTimeout(toastTimeout);
+        toastEl.textContent = message;
+        toastEl.classList.add('show');
+        toastTimeout = setTimeout(() => {
+          toastEl.classList.remove('show');
+        }, 2200);
+      }
+
+      function updateConfigIndicator() {
+        const hasUrl = Boolean(getWebhookUrl());
+        configDot.classList.toggle('hidden', hasUrl);
+      }
+
+      function updateConnectivityBadge() {
+        const queue = getQueue();
+        const pendingCount = queue.length;
+        const online = navigator.onLine;
+
+        syncBadge.classList.remove('offline', 'syncing');
+
+        if (isSyncing) {
+          syncBadge.classList.add('syncing');
+          syncText.textContent = 'Sincronizando...';
+          return;
+        }
+
+        if (!online || pendingCount > 0) {
+          syncBadge.classList.add('offline');
+          syncText.textContent = `Offline (${pendingCount} ${pendingCount === 1 ? 'pendiente' : 'pendientes'})`;
+          return;
+        }
+
+        syncText.textContent = 'En línea';
+      }
+
+      function setOperationType(type) {
+        currentType = type === 'Ingreso' ? 'Ingreso' : 'Egreso';
+        const isEgreso = currentType === 'Egreso';
+
+        tabEgreso.classList.toggle('active', isEgreso);
+        tabIngreso.classList.toggle('active', !isEgreso);
+
+        submitBtn.textContent = isEgreso ? 'Guardar egreso' : 'Guardar ingreso';
+
+        selectedCategory = CATEGORIES[currentType][0];
+        renderCategoryChips();
+      }
+
+      function setPaymentMethod(method) {
+        currentMethod = method === 'Banco' ? 'Banco' : 'Efectivo';
+        const isEfectivo = currentMethod === 'Efectivo';
+
+        tabEfectivo.classList.toggle('active', isEfectivo);
+        tabBanco.classList.toggle('active', !isEfectivo);
+      }
+
+      function renderCategoryChips() {
+        const list = CATEGORIES[currentType] || [];
+        chipsContainer.innerHTML = '';
+
+        list.forEach((category) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'cat-pill';
+          if (category === selectedCategory) {
+            btn.classList.add('selected');
+          }
+          btn.textContent = category;
+          btn.setAttribute('role', 'radio');
+          btn.setAttribute('aria-checked', String(category === selectedCategory));
+          btn.addEventListener('click', () => {
+            selectedCategory = category;
+            renderCategoryChips();
+          });
+          chipsContainer.appendChild(btn);
+        });
+      }
+
+      // Validar que solo se ingresen números y hasta 2 decimales en el input de cantidad
+      amountInput.addEventListener('input', () => {
+        let val = amountInput.value.replace(',', '.').replace(/[^0-9.]/g, '');
+        const parts = val.split('.');
+        if (parts.length > 2) {
+          val = parts[0] + '.' + parts.slice(1).join('');
+        }
+        if (parts[1] && parts[1].length > 2) {
+          val = parts[0] + '.' + parts[1].slice(0, 2);
+        }
+        amountInput.value = val;
+      });
+
+      // Mostrar u ocultar el campo de detalle según el checkbox
+      detailCheckbox.addEventListener('change', () => {
+        const checked = detailCheckbox.checked;
+        detailContainer.classList.toggle('visible', checked);
+        if (checked) {
+          noteInput.focus();
+        } else {
+          noteInput.value = '';
+        }
+      });
+
+      // =========================================================================
+      // REGISTRO Y SINCRONIZACIÓN
+      // =========================================================================
+
+      function handleRegisterTransaction(e) {
+        if (e) e.preventDefault();
+
+        const numericAmount = parseFloat(amountInput.value);
+        if (isNaN(numericAmount) || numericAmount <= 0) {
+          showToast('Ingresa una cantidad mayor a 0');
+          amountInput.focus();
+          return;
+        }
+
+        const detailText = detailCheckbox.checked ? noteInput.value.trim() : '';
+
+        const transaction = {
+          id: generateUniqueId(),
+          timestamp: new Date().toISOString(),
+          tipo: `${currentType} (${currentMethod})`,
+          tipoBase: currentType,
+          metodo: currentMethod,
+          monto: Math.round(numericAmount * 100) / 100,
+          categoria: selectedCategory,
+          detalle: detailText
+        };
+
+        const queue = getQueue();
+        queue.push(transaction);
+        saveQueue(queue);
+        addToRecentHistory(transaction);
+
+        // Reiniciar formulario
+        amountInput.value = '';
+        noteInput.value = '';
+        detailCheckbox.checked = false;
+        detailContainer.classList.remove('visible');
+        amountInput.blur();
+        noteInput.blur();
+
+        const webhookUrl = getWebhookUrl();
+        if (!webhookUrl) {
+          showToast('Guardado local (Configura tu URL en Ajustes)');
+          return;
+        }
+
+        if (navigator.onLine) {
+          showToast('Guardado — Sincronizando...');
+          syncPendingTransactions(false);
+        } else {
+          showToast('Guardado en cola offline');
+        }
+      }
+
+      async function syncPendingTransactions(manualTrigger = false) {
+        if (isSyncing) return;
+
+        const queue = getQueue();
+        if (queue.length === 0) {
+          updateConnectivityBadge();
+          if (manualTrigger) {
+            showToast('Todo está sincronizado');
+          }
+          return;
+        }
+
+        const webhookUrl = getWebhookUrl();
+        if (!webhookUrl) {
+          updateConnectivityBadge();
+          if (manualTrigger) {
+            openSettingsModal();
+            showToast('Configura primero la URL en Ajustes');
+          }
+          return;
+        }
+
+        if (!navigator.onLine) {
+          updateConnectivityBadge();
+          if (manualTrigger) {
+            showToast(`Sin conexión (${queue.length} en cola)`);
+          }
+          return;
+        }
+
+        isSyncing = true;
+        updateConnectivityBadge();
+
+        const batchToSend = [...queue];
+        const batchIds = new Set(batchToSend.map((item) => item.id));
+
+        try {
+          const response = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: JSON.stringify(batchToSend),
+            redirect: 'follow'
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+
+          const result = await response.json();
+          if (result && result.status === 'error') {
+            throw new Error(result.message || 'Error en Apps Script');
+          }
+
+          const currentQueue = getQueue();
+          const remainingQueue = currentQueue.filter((item) => !batchIds.has(item.id));
+          isSyncing = false;
+          saveQueue(remainingQueue);
+
+          showToast(`Sincronizado (${batchToSend.length})`);
+
+          if (remainingQueue.length > 0 && navigator.onLine) {
+            setTimeout(() => syncPendingTransactions(false), 300);
+          }
+        } catch (error) {
+          isSyncing = false;
+          updateConnectivityBadge();
+          if (manualTrigger) {
+            showToast('No se pudo sincronizar. Reintentará al conectar.');
+          }
+          console.warn('[Sync] Pendiente de reintento:', error);
+        }
+      }
+
+      // =========================================================================
+      // MODAL DE AJUSTES
+      // =========================================================================
+
+      function renderQueueInModal() {
+        const queue = getQueue();
+        pendingCountLabel.textContent = String(queue.length);
+
+        if (queue.length === 0) {
+          pendingQueueList.innerHTML = '<div class="empty-text">Sin registros pendientes.</div>';
+        } else {
+          pendingQueueList.innerHTML = '';
+          queue.slice().reverse().forEach((tx) => {
+            pendingQueueList.appendChild(createTransactionItemEl(tx, true));
+          });
+        }
+
+        const history = getRecentHistory();
+        if (history.length === 0) {
+          recentHistoryList.innerHTML = '<div class="empty-text">Sin registros recientes.</div>';
+        } else {
+          recentHistoryList.innerHTML = '';
+          const pendingIds = new Set(queue.map((q) => q.id));
+          history.slice(0, 8).forEach((tx) => {
+            recentHistoryList.appendChild(createTransactionItemEl(tx, pendingIds.has(tx.id)));
+          });
+        }
+      }
+
+      function createTransactionItemEl(tx, isPending) {
+        const row = document.createElement('div');
+        row.className = 'queue-item';
+
+        const left = document.createElement('div');
+        left.className = 'queue-item-left';
+
+        const title = document.createElement('span');
+        title.className = 'queue-item-title';
+        title.textContent = `${tx.categoria}${tx.detalle ? ' · ' + tx.detalle : ''}`;
+
+        const sub = document.createElement('span');
+        sub.className = 'queue-item-sub';
+        const dateObj = new Date(tx.timestamp);
+        const formattedTime = isNaN(dateObj.getTime())
+          ? tx.timestamp
+          : dateObj.toLocaleString('es', {
+              day: '2-digit',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit'
+            });
+        sub.textContent = `${tx.tipo} · ${formattedTime} · ${isPending ? 'Pendiente' : 'Sincronizado'}`;
+
+        left.appendChild(title);
+        left.appendChild(sub);
+
+        const right = document.createElement('span');
+        right.className = 'queue-item-amount';
+        const isIncome = (tx.tipoBase || tx.tipo || '').startsWith('Ingreso');
+        const sign = isIncome ? '+' : '-';
+        right.textContent = `${sign}$${Number(tx.monto).toFixed(2)}`;
+
+        row.appendChild(left);
+        row.appendChild(right);
+        return row;
+      }
+
+      function openSettingsModal() {
+        webhookUrlInput.value = getWebhookUrl();
+        renderQueueInModal();
+        settingsModal.classList.add('open');
+      }
+
+      function closeSettingsModal() {
+        settingsModal.classList.remove('open');
+      }
+
+      // =========================================================================
+      // EVENTOS
+      // =========================================================================
+
+      tabEgreso.addEventListener('click', () => setOperationType('Egreso'));
+      tabIngreso.addEventListener('click', () => setOperationType('Ingreso'));
+      tabEfectivo.addEventListener('click', () => setPaymentMethod('Efectivo'));
+      tabBanco.addEventListener('click', () => setPaymentMethod('Banco'));
+
+      financeForm.addEventListener('submit', handleRegisterTransaction);
+
+      syncBadge.addEventListener('click', () => syncPendingTransactions(true));
+      settingsBtn.addEventListener('click', openSettingsModal);
+      closeModalBtn.addEventListener('click', closeSettingsModal);
+
+      settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) closeSettingsModal();
+      });
+
+      saveWebhookBtn.addEventListener('click', () => {
+        const rawUrl = webhookUrlInput.value.trim();
+        if (rawUrl && !rawUrl.startsWith('https://')) {
+          showToast('La URL debe iniciar con https://');
+          return;
+        }
+        setWebhookUrl(rawUrl);
+        showToast(rawUrl ? 'URL guardada' : 'URL eliminada');
+        if (rawUrl && navigator.onLine && getQueue().length > 0) {
+          syncPendingTransactions(true);
+        }
+      });
+
+      forceSyncBtn.addEventListener('click', () => {
+        const rawUrl = webhookUrlInput.value.trim();
+        if (rawUrl && rawUrl !== getWebhookUrl()) {
+          setWebhookUrl(rawUrl);
+        }
+        syncPendingTransactions(true);
+      });
+
+      window.addEventListener('online', () => {
+        updateConnectivityBadge();
+        showToast('Conexión restaurada — Sincronizando...');
+        syncPendingTransactions(false);
+      });
+
+      window.addEventListener('offline', () => {
+        updateConnectivityBadge();
+        showToast('Modo sin conexión');
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && navigator.onLine && getQueue().length > 0) {
+          syncPendingTransactions(false);
+        }
+      });
+
+      // Inicialización
+      setOperationType('Egreso');
+      updateConfigIndicator();
+      updateConnectivityBadge();
+
+      if (navigator.onLine && getQueue().length > 0 && getWebhookUrl()) {
+        setTimeout(() => syncPendingTransactions(false), 600);
+      }
+
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker
+            .register('./sw.js')
+            .catch((err) => console.warn('[SW] Error:', err));
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
